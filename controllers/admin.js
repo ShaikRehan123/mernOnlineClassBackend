@@ -1,5 +1,6 @@
 const Role = require("../models/role");
 const User = require("../models/user");
+const Course = require("../models/course");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 
@@ -48,5 +49,62 @@ exports.get_users = async (_req, res) => {
     res.status(200).json(users);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+exports.create_course = async (req, res) => {
+  const author_id = req.user.user_id;
+  if (req.file) {
+    const course = new Course({
+      name: req.body.name,
+      description: req.body.description,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      author_id: author_id,
+      image: req.file.filename,
+      price: req.body.price,
+      is_active: true,
+      is_featured: req.body.is_featured,
+      is_free: req.body.is_free,
+      is_trending: req.body.is_trending,
+    });
+    try {
+      await course.save();
+      res.status(201).send(course);
+    } catch (err) {
+      res.status(400).send(err);
+    }
+  } else {
+    const courseArray = req.body.name.split(" ");
+    let imageUrl = "https://via.placeholder.com/470x470?text=";
+    for (const element of courseArray) {
+      // if this is not last element
+      if (courseArray.indexOf(element) !== courseArray.length - 1) {
+        imageUrl += `${element}+`;
+      } else {
+        imageUrl += element;
+      }
+    }
+
+    const course = new Course({
+      name: req.body.name,
+      description: req.body.description,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      author_id: author_id,
+      // category_id: req.body.category_id,
+      image: imageUrl,
+      price: req.body.price,
+      is_active: req.body.is_active,
+      is_featured: req.body.is_featured,
+      is_free: req.body.is_free,
+      is_trending: req.body.is_trending,
+    });
+    try {
+      await course.save();
+      res.status(201).send(course);
+    } catch (err) {
+      res.status(400).send(err);
+    }
   }
 };
