@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const courseSchema = new Schema({
   name: { type: String, required: true, max: 100 },
   description: { type: String, required: true },
+  category_id: { type: String, required: true },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
   author_id: { type: String, required: true },

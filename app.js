@@ -4,9 +4,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 require("dotenv").config();
-
+const cors = require("cors");
 const userRouter = require("./routes/user");
 const adminRouter = require("./routes/admin");
+const courseRouter = require("./routes/course");
+const categoryRouter = require("./routes/category");
 
 const app = express();
 
@@ -23,9 +25,12 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cors());
 
 app.use("/users", userRouter);
 app.use("/admin", adminRouter);
+app.use("/course", courseRouter);
+app.use("/category", categoryRouter);
 
 const port = process.env.PORT || 8080;
 
