@@ -1,5 +1,5 @@
 const Role = require("../models/role");
-const User = require("../models/user");
+const User = require("../models/User");
 const Course = require("../models/course");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
@@ -44,7 +44,7 @@ exports.create_role = async (req, res) => {
 exports.get_users = async (_req, res) => {
   try {
     const users = await User.find({
-      role_id: 1,
+      role_id: 2,
     });
     res.status(200).json(users);
   } catch (err) {
@@ -58,6 +58,7 @@ exports.create_course = async (req, res) => {
     const course = new Course({
       name: req.body.name,
       description: req.body.description,
+      category_id: req.body.category_id,
       created_at: Date.now(),
       updated_at: Date.now(),
       author_id: author_id,
@@ -92,7 +93,7 @@ exports.create_course = async (req, res) => {
       created_at: Date.now(),
       updated_at: Date.now(),
       author_id: author_id,
-      // category_id: req.body.category_id,
+      category_id: req.body.category_id,
       image: imageUrl,
       price: req.body.price,
       is_active: req.body.is_active,

@@ -4,6 +4,7 @@ const { verifyAdmin } = require("../lib/lib");
 const multer = require("multer");
 const path = require("path");
 const admin_controller = require("../controllers/admin");
+const category_contoller = require("../controllers/category");
 
 router.post("/create_admin", admin_controller.create_admin);
 
@@ -49,6 +50,18 @@ router.post(
   verifyAdmin,
   upload.single("image"),
   admin_controller.create_course
+);
+
+router.post(
+  "/create_category",
+  verifyAdmin,
+  category_contoller.create_category
+);
+
+router.get(
+  "/get_all_categories",
+  verifyAdmin,
+  category_contoller.get_all_categories
 );
 
 module.exports = router;

@@ -2,12 +2,13 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
-  name: { type: String, required: true, max: 100 },
-  email: { type: String, required: true, max: 100, unique: true },
-  password: { type: String, required: true, max: 100 },
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  is_active: { type: Boolean, required: false, default: true },
+  password: { type: String, required: true },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
-  role_id: { type: String, required: true, max: 100 },
+  role_id: { type: String, required: true },
 });
 
 // Export the model
