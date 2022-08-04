@@ -64,9 +64,8 @@ exports.create_course = async (req, res) => {
       author_id: author_id,
       image: req.file.filename,
       price: req.body.price,
-      is_active: true,
+      is_active: req.body.is_active,
       is_featured: req.body.is_featured,
-      is_free: req.body.is_free,
       is_trending: req.body.is_trending,
     });
     try {
