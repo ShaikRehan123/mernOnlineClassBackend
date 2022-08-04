@@ -16,10 +16,20 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, "../public/upload/course_images"));
   },
   filename: function (req, file, cb) {
+    // first word of the course name
+    const name = req.body.name.split(" ")[0];
+    // last word of the course name
+    const lastWord =
+      req.body.name.split(" ")[req.body.name.split(" ").length - 1];
+    // course name
+    const courseName = `${name}_${lastWord}`;
+    // console.log(name);
     cb(
       null,
       Date.now() +
-        req.body.name[0] +
+        "-" +
+        courseName +
+        "-" +
         file.originalname[0] +
         `.${file.mimetype.split("/")[1]}`
     );

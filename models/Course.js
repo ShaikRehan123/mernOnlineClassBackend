@@ -12,7 +12,7 @@ const courseSchema = new Schema({
   image: { type: String, required: true },
   is_active: { type: Boolean, required: true, default: true },
   is_featured: { type: Boolean, required: true },
-  is_free: { type: Boolean, required: true, default: false },
+  // is_free: { type: Boolean, required: true, default: false },
   is_trending: { type: Boolean, required: true },
 });
 
