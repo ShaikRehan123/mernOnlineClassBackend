@@ -8,7 +8,11 @@ const category_contoller = require("../controllers/category");
 
 router.post("/create_admin", admin_controller.create_admin);
 
-router.post("/create_role", verifyAdmin, admin_controller.create_role);
+router.post(
+  "/create_role", 
+//   verifyAdmin,
+  admin_controller.create_role
+);
 router.get("/get_users", verifyAdmin, admin_controller.get_users);
 
 const storage = multer.diskStorage({
