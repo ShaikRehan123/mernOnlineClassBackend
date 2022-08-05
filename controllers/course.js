@@ -1,12 +1,42 @@
+const Category = require("../models/Category");
 const Course = require("../models/Course");
+const User = require("../models/User");
 
 exports.get_all_courses = async (_req, res) => {
-  const all_courses = await Course.find({});
+  const all_courses = await Course.find({
+    is_active: true,
+  });
 
-  if (all_courses.length > 0) {
+  // get category name
+  const courses = await Promise.all(
+    all_courses.map(async (course) => {
+      const category = await Category.findOne({
+        _id: course.category_id,
+      });
+      return {
+        ...course._doc,
+        category_name: category.name,
+      };
+    })
+  );
+
+  // get author name
+  const courses_with_author = await Promise.all(
+    courses.map(async (course) => {
+      const author = await User.findOne({
+        _id: course.author_id,
+      });
+      return {
+        ...course,
+        author_name: author.name,
+      };
+    })
+  );
+
+  if (courses_with_author.length > 0) {
     res.status(200).json({
       message: "Successfully retrieved all courses",
-      courses: all_courses,
+      courses: courses_with_author,
     });
   } else {
     res.status(200).json({
