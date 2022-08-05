@@ -1,6 +1,6 @@
-const Role = require("../models/role");
+const Role = require("../models/Role");
 const User = require("../models/User");
-const Course = require("../models/course");
+const Course = require("../models/Course");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 
