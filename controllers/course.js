@@ -41,6 +41,7 @@ exports.get_all_courses = async (_req, res) => {
   } else {
     res.status(200).json({
       message: "No courses found",
+      courses: []
     });
   }
 };
