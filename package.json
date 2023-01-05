@@ -4,13 +4,13 @@
   "description": "",
   "main": "index.js",
   "engines":{
-    "node":"14.x"
+    "node":"18.x"
   },
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js"
   },
-  "author": "",
+  "author": "Rehan Shaik",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.0.1",
@@ -22,5 +22,8 @@
     "mongoose": "^6.5.0",
     "mongoose-sequence": "^5.3.1",
     "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "2.0.20"
   }
 }

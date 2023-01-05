@@ -6,8 +6,18 @@ const jwt = require("jsonwebtoken");
 const saltRounds = 10;
 
 exports.register = async (req, res) => {
-  // get the role id from roles collection where role_id is 1
-  const role = await Role.findOne({ role_id: 2 });
+  // get the role id from roles collection where role_id is 2
+  let role = await Role.findOne({ role_id: 2 });
+
+  if (!role) {
+    // create a new role
+    const newRole = new Role({
+      name: "user",
+      role_id: 2,
+    });
+    await newRole.save();
+    role = newRole;
+  }
 
   const password = await bcrypt.hash(req.body.password, saltRounds);
 
@@ -17,6 +27,7 @@ exports.register = async (req, res) => {
     password: password,
     role_id: role.role_id,
   });
+
   try {
     const newUser = await user.save();
     res.status(201).json({
@@ -31,7 +42,7 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
+  const user = await User.findOne({ email: req.body.email, is_active: true });
   if (!user) {
     return res.status(400).json({ message: "Invalid email or password" });
   }
