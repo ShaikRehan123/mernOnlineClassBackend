@@ -9,5 +9,7 @@ router.get(
   "/get_courses_in_category/:id",
   course_controller.get_courses_in_category
 );
+router.delete("/delete/:id", course_controller.course_delete);
+router.get("/top-ten-courses", course_controller.topTenCourses);
 
 module.exports = router;

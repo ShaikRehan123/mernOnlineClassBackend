@@ -126,13 +126,13 @@ exports.upload_lesson = async (req, res) => {
     created_at: Date.now(),
     updated_at: Date.now(),
     course_id: req.body.course_id,
-    video: req.file.filename || "no video",
+    video_link: req.file.filename || "no video",
   });
   try {
     await lesson.save();
     res.status(201).send(lesson);
   } catch (err) {
-    res.status(400).send;
+    res.status(400).send(err);
   }
 };
 

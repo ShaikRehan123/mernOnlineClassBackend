@@ -28,9 +28,9 @@ const storage = multer.diskStorage({
     // console.log(name);
     cb(
       null,
-      Date.now() +
+      courseName +
         "-" +
-        courseName +
+        Date.now() +
         "-" +
         file.originalname[0] +
         `.${file.mimetype.split("/")[1]}`
@@ -57,60 +57,6 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
-const storageVideo = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, path.join(__dirname, "../public/upload/course_videos"));
-  },
-  filename: async function (req, file, cb) {
-    console.log(file);
-    const course_id = req.body.course_id;
-    const courseName = await Course.findOne({
-      id: course_id,
-    }).select("name");
-
-    // get all file names from upload/course_videos
-    const files = fs.readdirSync(
-      path.join(__dirname, "../public/upload/course_videos")
-    );
-    // filter files that start with courseName.name.split(" ")[0]
-    const filteredFiles = files.filter((file) => {
-      return file.startsWith(courseName.name.split(" ")[0]);
-    });
-
-    const file_name =
-      courseName.name.split(" ")[0] +
-      "_" +
-      JSON.stringify(Date.now()) +
-      "_" +
-      filteredFiles.length +
-      "." +
-      file.mimetype.split("/")[1];
-
-    req.file_name = file_name;
-
-    cb(null, file_name);
-  },
-});
-
-const vidoeFileFilter = (_req, file, cb) => {
-  if (
-    file.mimetype === "video/mp4" ||
-    file.mimetype === "video/mkv" ||
-    file.mimetype === "video/avi"
-  ) {
-    cb(null, true);
-  }
-  cb(null, false);
-};
-
-const uploadVideo = multer({
-  storage: storageVideo,
-  limits: {
-    fileSize: 1024 * 1024 * 100,
-  },
-  fileFilter: vidoeFileFilter,
-});
-
 router.post("/create", admin_controller.create_admin);
 
 router.post(
@@ -133,6 +79,43 @@ router.get(
   category_contoller.get_all_categories
 );
 
+const uploadVideo = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const course_id = req.body.course_id;
+      const parent_folder = path.join(
+        __dirname,
+        "../public/upload/course_videos"
+      );
+      const course_folder = path.join(parent_folder, course_id);
+      if (!fs.existsSync(parent_folder)) {
+        fs.mkdirSync(parent_folder);
+      }
+      if (!fs.existsSync(course_folder)) {
+        fs.mkdirSync(course_folder);
+      }
+      cb(null, course_folder);
+    },
+    filename: function (req, file, cb) {
+      const fileName = `${req.body.name.split(" ").join("_")}_${Date.now()}`;
+      cb(null, fileName + `.${file.mimetype.split("/")[1]}`);
+    },
+  }),
+  limits: {
+    // 100 mb
+    fileSize: 1024 * 1024 * 100,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (
+      file.mimetype === "video/mp4" ||
+      file.mimetype === "video/avi" ||
+      file.mimetype === "video/mkv"
+    ) {
+      cb(null, true);
+    }
+    cb(null, false);
+  },
+});
 router.post(
   "/upload_lesson",
   verifyAdmin,
