@@ -3,18 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "engines":{
-    "node":"14.x"
+  "engines": {
+    "node": "18.x"
   },
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js"
   },
-  "author": "",
+  "author": "Rehan Shaik",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.0.1",
     "body-parser": "^1.20.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
@@ -22,5 +23,8 @@
     "mongoose": "^6.5.0",
     "mongoose-sequence": "^5.3.1",
     "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "2.0.20"
   }
 }

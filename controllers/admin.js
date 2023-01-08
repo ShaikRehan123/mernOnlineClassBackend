@@ -2,10 +2,20 @@ const Role = require("../models/Role");
 const User = require("../models/User");
 const Course = require("../models/Course");
 const bcrypt = require("bcrypt");
+const Lesson = require("../models/Lesson");
 const saltRounds = 10;
 
 exports.create_admin = async (req, res) => {
-  const role = await Role.findOne({ role_id: 1 });
+  let role = await Role.findOne({ role_id: 1 });
+
+  if (!role) {
+    role = new Role({
+      name: "Admin",
+      role_id: 1,
+    });
+    await role.save();
+    role = role;
+  }
 
   const password = await bcrypt.hash(req.body.password, saltRounds);
 
@@ -106,5 +116,36 @@ exports.create_course = async (req, res) => {
     } catch (err) {
       res.status(400).send(err);
     }
+  }
+};
+
+exports.upload_lesson = async (req, res) => {
+  const lesson = new Lesson({
+    name: req.body.name,
+    description: req.body.description,
+    created_at: Date.now(),
+    updated_at: Date.now(),
+    course_id: req.body.course_id,
+    video_link: req.file.filename || "no video",
+  });
+  try {
+    await lesson.save();
+    res.status(201).send(lesson);
+  } catch (err) {
+    res.status(400).send(err);
+  }
+};
+
+exports.get_teacher_courses = async (req, res) => {
+  const teacher_id = req.user.user_id;
+  try {
+    const courses = await Course.find({ author_id: teacher_id });
+    res.status(200).json({
+      status: 200,
+      message: "Courses fetched successfully",
+      courses: courses,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
