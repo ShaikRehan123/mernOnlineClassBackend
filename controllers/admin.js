@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Course = require("../models/Course");
 const bcrypt = require("bcrypt");
 const Lesson = require("../models/Lesson");
+const Category = require("../models/Category");
 const saltRounds = 10;
 
 exports.create_admin = async (req, res) => {
@@ -64,11 +65,13 @@ exports.get_users = async (_req, res) => {
 
 exports.create_course = async (req, res) => {
   const author_id = req.user.user_id;
+  const category = await Category.findById(req.body.category_id);
+
   if (req.file) {
     const course = new Course({
       name: req.body.name,
       description: req.body.description,
-      category_id: req.body.category_id,
+      category_id: category._id,
       created_at: Date.now(),
       updated_at: Date.now(),
       author_id: author_id,
@@ -102,7 +105,7 @@ exports.create_course = async (req, res) => {
       created_at: Date.now(),
       updated_at: Date.now(),
       author_id: author_id,
-      category_id: req.body.category_id,
+      category_id: category._id,
       image: imageUrl,
       price: req.body.price,
       is_active: req.body.is_active,
@@ -120,12 +123,14 @@ exports.create_course = async (req, res) => {
 };
 
 exports.upload_lesson = async (req, res) => {
+  const course = await Course.findById(req.body.course_id);
+
   const lesson = new Lesson({
     name: req.body.name,
     description: req.body.description,
     created_at: Date.now(),
     updated_at: Date.now(),
-    course_id: req.body.course_id,
+    course_id: course._id,
     video_link: req.file.filename || "no video",
   });
   try {
