@@ -2,6 +2,7 @@ const Category = require("../models/Category");
 const EnrolledCourse = require("../models/EnrolledCourse");
 const Course = require("../models/Course");
 const User = require("../models/User");
+const Cart = require("../models/Cart");
 const fs = require("fs");
 const path = require("path");
 
@@ -132,69 +133,49 @@ exports.course_delete = async (req, res) => {
 };
 
 exports.topTenCourses = async (req, res) => {
-  // const EnrolledCourseSchema = new Schema({
-  //   course: {
-  //     type: Schema.Types.ObjectId,
-  //     ref: "Course",
-  //     required: true,
-  //   },
-  //   user: {
-  //     type: Schema.Types.ObjectId,
-  //     ref: "User",
-  //     required: true,
-  //   },
-  //   enrolledDate: {
-  //     type: Date,
-  //     default: Date.now,
-  //   },
-  //   paidAmount: {
-  //     type: Number,
-  //     required: true,
-  //     default: 0,
-  //   },
-  //   paymentId: {
-  //     type: String,
-  //     required: false,
-  //   },
-  //   // array of objects with lesson id and lesson status
-  //   lessonsStatus: [
-  //     {
-  //       lesson: {
-  //         type: Schema.Types.ObjectId,
-  //         ref: "Lesson",
-  //         required: true,
-  //       },
-  //       status: {
-  //         type: String,
-  //         enum: ["not-started", "in-progress", "completed"],
-  //         default: "not-started",
-  //       },
-  //       videoCurrentTime: {
-  //         type: Number,
-  //         default: 0,
-  //         required: false,
-  //       },
-  //     },
-  //   ],
-  // });
-  // get each course enrolled count
-  // sort the courses by enrolled count
-  // get the top 10 courses
-  // get the course details
+  const user_id = req.query.user_id ? req.query.user_id : "notLoggedIn";
 
   const allCourses = await Course.find({ is_active: true });
 
   const allEnrolledCourses = await EnrolledCourse.find({});
   const coursesEnrolledCount = [];
+
+  let UserId;
+  let usersCart;
+
+  if (user_id !== "notLoggedIn") {
+    UserId = await User.findOne({ _id: user_id });
+    usersCart = await Cart.findOne({
+      user_id: UserId._id,
+    });
+  }
+
   allCourses.forEach((course) => {
     const courseEnrolledCount = allEnrolledCourses.filter(
       (enrolledCourse) =>
         enrolledCourse.course.toString() === course._id.toString()
     ).length;
-    coursesEnrolledCount.push({
-      course: course,
-      enrolledCount: courseEnrolledCount,
-    });
+
+    const isEnrolled = allEnrolledCourses.some(
+      (enrolledCourse) =>
+        enrolledCourse.course.toString() === course._id.toString() &&
+        enrolledCourse.user.toString() === user_id.toString()
+    );
+
+    if (UserId) {
+      const course_ids = usersCart ? usersCart.course_ids : [];
+
+      const isAddedToCart = course_ids.some(
+        (course_id) => course_id.toString() === course._id.toString()
+      );
+
+      coursesEnrolledCount.push({
+        ...course._doc,
+        enrolledCount: courseEnrolledCount,
+        isEnrolled: isEnrolled,
+        isAddedToCart: isAddedToCart,
+      });
+    }
   });
 
   coursesEnrolledCount.sort((a, b) => b.enrolledCount - a.enrolledCount);

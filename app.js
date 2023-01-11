@@ -10,6 +10,7 @@ const adminRouter = require("./routes/admin");
 const courseRouter = require("./routes/course");
 const categoryRouter = require("./routes/category");
 const lessonsRouter = require("./routes/lesson");
+const cartRouter = require("./routes/cart");
 const { checkAssetsisLoggedIn } = require("./lib/lib");
 const cookieParser = require("cookie-parser");
 
@@ -40,6 +41,7 @@ app.use("/admin", adminRouter);
 app.use("/course", courseRouter);
 app.use("/category", categoryRouter);
 app.use("/lessons", lessonsRouter);
+app.use("/cart", cartRouter);
 
 const port = process.env.PORT || 8080;
 
