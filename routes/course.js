@@ -12,5 +12,11 @@ router.get(
 );
 router.delete("/delete/:id", course_controller.course_delete);
 router.get("/top-ten-courses", course_controller.topTenCourses);
+router.post("/create-order", isLoggedIn, course_controller.createOrder);
+router.post(
+  "/payment-verification",
+  // isLoggedIn,
+  course_controller.paymentVerification
+);
 
 module.exports = router;

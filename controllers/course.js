@@ -3,8 +3,13 @@ const EnrolledCourse = require("../models/EnrolledCourse");
 const Course = require("../models/Course");
 const User = require("../models/User");
 const Cart = require("../models/Cart");
+const Order = require("../models/Order");
+const Lesson = require("../models/Lesson");
 const fs = require("fs");
 const path = require("path");
+const shortid = require("shortid");
+const { razorpayInstance } = require("../lib/lib");
+const crypto = require("crypto");
 
 exports.get_all_courses = async (_req, res) => {
   const all_courses = await Course.find({
@@ -186,4 +191,220 @@ exports.topTenCourses = async (req, res) => {
     message: "Top 10 courses",
     topTenCourses: topTenCourses,
   });
+};
+
+exports.createOrder = async (req, res) => {
+  const courseIds = req.body.courseIds;
+  const userId = req.user.user_id;
+
+  const user = await User.findById(userId);
+
+  const totalAmount = await Course.find({
+    _id: {
+      $in: courseIds,
+    },
+  }).then((courses) => {
+    let totalAmount = 0;
+    courses.forEach((course) => {
+      totalAmount += course.price;
+    });
+    return totalAmount;
+  });
+
+  // console.log(totalAmount);
+
+  const commaSeperatedCourseNames = await Course.find({
+    _id: {
+      $in: courseIds,
+    },
+  }).then((courses) => {
+    const courseNames = [];
+    courses.forEach((course) => {
+      courseNames.push(course.name);
+    });
+    return courseNames.join(", ");
+  });
+
+  if (totalAmount !== 0) {
+    const order_id = shortid.generate();
+
+    const options = {
+      amount: totalAmount * 100,
+      currency: "INR",
+      receipt: order_id,
+    };
+
+    try {
+      const order = await razorpayInstance.orders.create(options);
+
+      const database_order = await Order.create({
+        user_id: user._id,
+        course_ids: courseIds,
+        amount: totalAmount,
+        is_paid: false,
+        razorpay_order_id: order.id,
+        razorpay_payment_id: null,
+        razorpay_signature: null,
+        created_at: order.created_at,
+      });
+
+      res.send({
+        message: "Order created",
+        status: "success",
+        order: order,
+        courseNames: commaSeperatedCourseNames,
+      });
+    } catch (err) {
+      // console.log(err);
+      res.status(500).json({
+        status: "error",
+        message: err.message || "Something went wrong",
+      });
+    }
+  } else {
+    const database_order = await Order.create({
+      user_id: user._id,
+      course_ids: courseIds,
+      amount: totalAmount,
+      is_paid: true,
+      razorpay_order_id: "free_course",
+      razorpay_payment_id: "free_course",
+      razorpay_signature: "free_course",
+      created_at: Date.now(),
+    });
+
+    const courses = await Course.find({
+      _id: {
+        $in: database_order.course_ids,
+      },
+    });
+
+    // console.log(courses);
+
+    courses.forEach(async (course) => {
+      const lessons = await Lesson.find({
+        course_id: course._id,
+      });
+
+      const lessonsStatus = [];
+
+      lessons.forEach((lesson) => {
+        lessonsStatus.push({
+          lesson: lesson._id,
+          status: "not-started",
+          videoCurrentTime: 0,
+        });
+      });
+
+      await EnrolledCourse.create({
+        user: user._id,
+        course: course._id,
+        enrolledDate: Date.now(),
+        lessonsStatus: lessonsStatus,
+      });
+    });
+
+    // remove courses from cart
+    const cart = await Cart.findOne({
+      user_id: user._id,
+    });
+
+    const newCourseIds = cart.course_ids.filter((course_id) => {
+      return !courseIds.includes(course_id.toString());
+    });
+
+    cart.course_ids = newCourseIds;
+
+    await cart.save();
+
+    res.send({
+      message: "Order created",
+      status: "success",
+      order: "free_course",
+      courseNames: commaSeperatedCourseNames,
+    });
+  }
+};
+
+exports.paymentVerification = async (req, res) => {
+  // console.log(req.body);
+
+  const combined =
+    req.body.razorpay_order_id + "|" + req.body.razorpay_payment_id;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(combined.toString())
+    .digest("hex");
+
+  // console.log(req.body);
+
+  if (expectedSignature === req.body.razorpay_signature) {
+    const order = await Order.findOne({
+      razorpay_order_id: req.body.razorpay_order_id,
+    });
+
+    if (order) {
+      order.is_paid = true;
+      order.razorpay_payment_id = req.body.razorpay_payment_id;
+      order.razorpay_signature = req.body.razorpay_signature;
+      await order.save();
+
+      const user = await User.findById(order.user_id);
+
+      const courses = await Course.find({
+        _id: {
+          $in: order.course_ids,
+        },
+      });
+
+      courses.forEach(async (course) => {
+        const lessons = await Lesson.find({
+          course_id: course._id,
+        });
+
+        const lessonsStatus = [];
+
+        lessons.forEach((lesson) => {
+          lessonsStatus.push({
+            lesson: lesson._id,
+            status: "not-started",
+            videoCurrentTime: 0,
+          });
+        });
+
+        await EnrolledCourse.create({
+          user: user._id,
+          course: course._id,
+          enrolledDate: Date.now(),
+          lessonsStatus: lessonsStatus,
+        });
+      });
+
+      // remove courses from cart
+      const cart = await Cart.findOne({
+        user_id: user._id,
+      });
+
+      const newCourseIds = cart.course_ids.filter((course_id) => {
+        return !order.course_ids.includes(course_id.toString());
+      });
+
+      cart.course_ids = newCourseIds;
+
+      await cart.save();
+
+      res.redirect(
+        `${process.env.FRONTEND_URL}/payment-success?order_id=${req.body.razorpay_order_id}&payment_id=${req.body.razorpay_payment_id}`
+      );
+    } else {
+      res.redirect(
+        `${process.env.FRONTEND_URL}/payment-failure?order_id=${req.body.razorpay_order_id}&payment_id=${req.body.razorpay_payment_id}`
+      );
+    }
+  } else {
+    res.redirect(
+      `${process.env.FRONTEND_URL}/payment-failure?order_id=${req.body.razorpay_order_id}&payment_id=${req.body.razorpay_payment_id}`
+    );
+  }
 };

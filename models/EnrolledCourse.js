@@ -16,16 +16,6 @@ const EnrolledCourseSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  paidAmount: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  paymentId: {
-    type: String,
-    required: false,
-  },
-  // array of objects with lesson id and lesson status
   lessonsStatus: [
     {
       lesson: {

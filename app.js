@@ -42,6 +42,11 @@ app.use("/course", courseRouter);
 app.use("/category", categoryRouter);
 app.use("/lessons", lessonsRouter);
 app.use("/cart", cartRouter);
+app.get("/extra/get_razorpay_key", (req, res) => {
+  res.status(200).json({
+    key: process.env.RAZORPAY_KEY_ID,
+  });
+});
 
 const port = process.env.PORT || 8080;
 
