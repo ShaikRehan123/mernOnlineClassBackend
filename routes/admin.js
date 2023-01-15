@@ -102,8 +102,8 @@ const uploadVideo = multer({
     },
   }),
   limits: {
-    // 100 mb
-    fileSize: 1024 * 1024 * 100,
+    // 400 mb
+    fileSize: 1024 * 1024 * 400,
   },
   fileFilter: (_req, file, cb) => {
     if (

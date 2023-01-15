@@ -193,6 +193,93 @@ exports.topTenCourses = async (req, res) => {
   });
 };
 
+exports.allCourses = async (req, res) => {
+  const user_id = req.query.user_id ? req.query.user_id : "notLoggedIn";
+
+  const allCourses = await Course.find({ is_active: true });
+
+  const allEnrolledCourses = await EnrolledCourse.find({});
+  const coursesEnrolledCount = [];
+
+  let UserId;
+  let usersCart;
+
+  if (user_id !== "notLoggedIn") {
+    UserId = await User.findOne({
+      _id: user_id,
+    });
+
+    usersCart = await Cart.findOne({
+      user_id: UserId._id,
+    });
+  }
+
+  allCourses.forEach((course) => {
+    const courseEnrolledCount = allEnrolledCourses.filter(
+      (enrolledCourse) =>
+        enrolledCourse.course.toString() === course._id.toString()
+    ).length;
+
+    const isEnrolled = allEnrolledCourses.some(
+      (enrolledCourse) =>
+        enrolledCourse.course.toString() === course._id.toString() &&
+        enrolledCourse.user.toString() === user_id.toString()
+    );
+
+    if (UserId) {
+      const course_ids = usersCart ? usersCart.course_ids : [];
+
+      const isAddedToCart = course_ids.some(
+        (course_id) => course_id.toString() === course._id.toString()
+      );
+
+      coursesEnrolledCount.push({
+        ...course._doc,
+        enrolledCount: courseEnrolledCount,
+        isEnrolled: isEnrolled,
+        isAddedToCart: isAddedToCart,
+      });
+    }
+  });
+
+  coursesEnrolledCount.sort((a, b) => b.enrolledCount - a.enrolledCount);
+
+  res.status(200).json({
+    message: "All courses",
+    allCourses: coursesEnrolledCount,
+  });
+};
+
+exports.toggle_active = async (req, res) => {
+  const course_id = req.body.course_id;
+
+  try {
+    const course = await Course.findById(course_id);
+
+    if (course) {
+      const updatedCourse = await Course.updateOne(
+        { _id: course_id },
+        { $set: { is_active: !course.is_active } }
+      );
+
+      res.status(200).json({
+        status: "success",
+        message: "Course updated",
+      });
+    } else {
+      res.status(404).json({
+        status: "error",
+        message: "Course not found",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      message: err.message || "Something went wrong",
+    });
+  }
+};
+
 exports.createOrder = async (req, res) => {
   const courseIds = req.body.courseIds;
   const userId = req.user.user_id;
@@ -407,4 +494,212 @@ exports.paymentVerification = async (req, res) => {
       `${process.env.FRONTEND_URL}/payment-failure?order_id=${req.body.razorpay_order_id}&payment_id=${req.body.razorpay_payment_id}`
     );
   }
+};
+
+exports.enrolledCourses = async (req, res) => {
+  const userId = req.user.user_id;
+
+  const enrolledCourses = await EnrolledCourse.find({ user: userId })
+    .populate("course")
+    .populate("user")
+    .populate("lessonsStatus.lesson");
+
+  console.log(enrolledCourses);
+
+  const courses = [];
+
+  enrolledCourses.forEach((enrolledCourse) => {
+    // get completion status of course by percentage of lessons completed
+    let completedLessons = 0;
+    let totalLessons = 0;
+
+    enrolledCourse.lessonsStatus.forEach((lessonStatus) => {
+      if (lessonStatus.lesson.is_active) {
+        if (lessonStatus.status === "completed") {
+          completedLessons++;
+        }
+
+        if (lessonStatus.status === "in-progress") {
+          completedLessons += 0.5;
+        }
+
+        totalLessons++;
+      }
+    });
+
+    const completionPercentage = Math.round(
+      (completedLessons / totalLessons) * 100
+    );
+
+    courses.push({
+      course: enrolledCourse.course,
+      completionPercentage: completionPercentage,
+    });
+  });
+
+  res.send({
+    message: "Enrolled courses",
+    status: "success",
+    enrolledCourses: courses,
+  });
+};
+
+exports.enrolledCourseLessons = async (req, res) => {
+  const userId = req.user.user_id;
+  const courseId = req.body.course_id;
+
+  const enrolledCourse = await EnrolledCourse.findOne({
+    user: userId,
+    course: courseId,
+  })
+    .populate("course")
+    .populate("user")
+    .populate("lessonsStatus.lesson");
+
+  if (enrolledCourse) {
+    const lessons = [];
+
+    enrolledCourse.lessonsStatus.forEach((lessonStatus) => {
+      if (lessonStatus.lesson.is_active) {
+        lessons.push({
+          lesson: lessonStatus.lesson,
+          status: lessonStatus.status,
+          videoCurrentTime: lessonStatus.videoCurrentTime,
+        });
+      }
+      // lessons.push({
+      //   lesson: lessonStatus.lesson,
+      //   status: lessonStatus.status,
+      //   videoCurrentTime: lessonStatus.videoCurrentTime,
+      // });
+    });
+
+    res.send({
+      message: "Enrolled course lessons",
+      status: "success",
+      courseLessons: lessons,
+    });
+  } else {
+    res.send({
+      message: "This user might not be enrolled in this course",
+      status: "failure",
+    });
+  }
+};
+
+exports.updateVideoCurrentTime = async (req, res) => {
+  const userId = req.user.user_id;
+  const courseId = req.body.course_id;
+  const lessonId = req.body.lesson_id;
+  const videoCurrentTime = req.body.video_current_time;
+  const videoDuration = req.body.video_duration;
+
+  const enrolledCourse = await EnrolledCourse.findOne({
+    user: userId,
+    course: courseId,
+  })
+    .populate("course")
+    .populate("user")
+    .populate("lessonsStatus.lesson");
+
+  if (enrolledCourse) {
+    const lessonsStatus = enrolledCourse.lessonsStatus;
+    const lessonStatus = lessonsStatus.find(
+      (lessonStatus) =>
+        lessonStatus.lesson._id.toString() === lessonId.toString()
+    );
+
+    // if lessonStatus.status is not-started, then change it to in-progress\
+    if (lessonStatus.status === "not-started") {
+      lessonStatus.status = "in-progress";
+    }
+
+    // if videoCurrentTime is greater than 90% of videoDuration, then change lessonStatus.status to completed
+    if (videoCurrentTime > videoDuration * 0.9) {
+      lessonStatus.status = "completed";
+    }
+
+    lessonStatus.videoCurrentTime = videoCurrentTime;
+    await enrolledCourse.save();
+    res.send({
+      message: "Video current time updated",
+      status: "success",
+    });
+  } else {
+    res.send({
+      message: "This user might not be enrolled in this course",
+      status: "failure",
+    });
+  }
+};
+
+exports.getLessonCurrentTime = async (req, res) => {
+  const userId = req.user.user_id;
+  const courseId = req.body.course_id;
+  const lessonId = req.body.lesson_id;
+
+  const user = await User.findById(userId);
+  const enrolledCourse = await EnrolledCourse.findOne({
+    user: user._id,
+    course: courseId,
+  })
+    .populate("course")
+    .populate("user")
+    .populate("lessonsStatus.lesson");
+
+  if (enrolledCourse) {
+    const lessonsStatus = enrolledCourse.lessonsStatus;
+    const lessonStatus = lessonsStatus.find(
+      (lessonStatus) =>
+        lessonStatus.lesson._id.toString() === lessonId.toString()
+    );
+
+    res.send({
+      message: "Video current time",
+      status: "success",
+      videoCurrentTime: lessonStatus.videoCurrentTime,
+    });
+  } else {
+    res.send({
+      message: "This user might not be enrolled in this course",
+      status: "failure",
+    });
+  }
+};
+
+exports.getTeacherDashboardData = async (req, res) => {
+  const userId = req.user.user_id;
+
+  const user = await User.findById(userId);
+  const courses = await Course.find({ teacher: user._id });
+  const enrolledCourses = await EnrolledCourse.find({
+    course: { $in: courses.map((course) => course._id) },
+  })
+    .populate("course")
+    .populate("user")
+    .populate("lessonsStatus.lesson");
+  const totalStudents = enrolledCourses.length;
+  const totalCourses = courses.length;
+  let totalEarnings = 0;
+  let totalWatchTime = 0;
+
+  enrolledCourses.forEach((enrolledCourse) => {
+    totalEarnings += enrolledCourse.course.price;
+    enrolledCourse.lessonsStatus.forEach((lessonStatus) => {
+      if (lessonStatus.lesson.is_active) {
+        totalWatchTime += lessonStatus.videoCurrentTime;
+      }
+    });
+  });
+
+  res.send({
+    message: "Teacher dashboard data",
+    status: "success",
+    data: {
+      totalStudents: totalStudents,
+      totalCourses: totalCourses,
+      totalEarnings: totalEarnings,
+      totalWatchTime: totalWatchTime,
+    },
+  });
 };
