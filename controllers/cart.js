@@ -65,8 +65,9 @@ exports.getCart = async (req, res) => {
     });
   } else {
     res.status(200).json({
-      status: "error",
-      message: "Cart not found",
+      status: "success",
+      message: "Cart found",
+      cartItems: [],
     });
   }
 };

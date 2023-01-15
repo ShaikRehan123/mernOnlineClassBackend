@@ -4,6 +4,7 @@ const Course = require("../models/Course");
 const bcrypt = require("bcrypt");
 const Lesson = require("../models/Lesson");
 const Category = require("../models/Category");
+const EnrolledCourse = require("../models/EnrolledCourse");
 const saltRounds = 10;
 
 exports.create_admin = async (req, res) => {
@@ -133,6 +134,58 @@ exports.upload_lesson = async (req, res) => {
     course_id: course._id,
     video_link: req.file.filename || "no video",
   });
+
+  //add lesson in enrolledcourse.lessonstatus
+  // const EnrolledCourseSchema = new Schema({
+  //   course: {
+  //     type: Schema.Types.ObjectId,
+  //     ref: "Course",
+  //     required: true,
+  //   },
+  //   user: {
+  //     type: Schema.Types.ObjectId,
+  //     ref: "User",
+  //     required: true,
+  //   },
+  //   enrolledDate: {
+  //     type: Date,
+  //     default: Date.now,
+  //   },
+  //   lessonsStatus: [
+  //     {
+  //       lesson: {
+  //         type: Schema.Types.ObjectId,
+  //         ref: "Lesson",
+  //         required: true,
+  //       },
+  //       status: {
+  //         type: String,
+  //         enum: ["not-started", "in-progress", "completed"],
+  //         default: "not-started",
+  //       },
+  //       videoCurrentTime: {
+  //         type: Number,
+  //         default: 0,
+  //         required: false,
+  //       },
+  //     },
+  //   ],
+  // });
+
+  await EnrolledCourse.updateMany(
+    { course: course._id },
+
+    {
+      $push: {
+        lessonsStatus: {
+          lesson: lesson._id,
+          status: "not-started",
+          videoCurrentTime: 0,
+        },
+      },
+    }
+  );
+
   try {
     await lesson.save();
     res.status(201).send(lesson);

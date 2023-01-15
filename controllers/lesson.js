@@ -1,4 +1,6 @@
 const Lesson = require("../models/Lesson");
+const EnrolledCourse = require("../models/EnrolledCourse");
+
 const path = require("path");
 const fs = require("fs");
 
@@ -36,6 +38,48 @@ exports.lesson_delete = async (req, res) => {
       if (fs.existsSync(video_path)) {
         fs.unlinkSync(video_path);
       }
+
+      //remove lesson from enrolled course lessonstatus
+      // const EnrolledCourseSchema = new Schema({
+      //   course: {
+      //     type: Schema.Types.ObjectId,
+      //     ref: "Course",
+      //     required: true,
+      //   },
+      //   user: {
+      //     type: Schema.Types.ObjectId,
+      //     ref: "User",
+      //     required: true,
+      //   },
+      //   enrolledDate: {
+      //     type: Date,
+      //     default: Date.now,
+      //   },
+      //   lessonsStatus: [
+      //     {
+      //       lesson: {
+      //         type: Schema.Types.ObjectId,
+      //         ref: "Lesson",
+      //         required: true,
+      //       },
+      //       status: {
+      //         type: String,
+      //         enum: ["not-started", "in-progress", "completed"],
+      //         default: "not-started",
+      //       },
+      //       videoCurrentTime: {
+      //         type: Number,
+      //         default: 0,
+      //         required: false,
+      //       },
+      //     },
+      //   ],
+      // });
+
+      await EnrolledCourse.updateMany(
+        { "lessonsStatus.lesson": lesson_id },
+        { $pull: { lessonsStatus: { lesson: lesson_id } } }
+      );
 
       res.status(200).json({
         status: "success",
